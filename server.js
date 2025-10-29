@@ -34,7 +34,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload({
   limits: { fileSize: 5 * 1024 * 1024 * 1024 }, // 5GB max
   useTempFiles: true,
-  tempFileDir: '/tmp/'
+  tempFileDir: '/tmp/',
+  uploadTimeout: 600000, // 10 minutes timeout
+  abortOnLimit: false,
+  preserveExtension: true,
+  debug: false
 }));
 app.use(session({
   secret: 'odace-secret-key-2025',
@@ -173,23 +177,34 @@ app.post('/api/upload', requireAuth, async (req, res) => {
     const blobStream = blob.createWriteStream({
       metadata: {
         contentType: file.mimetype
-      }
+      },
+      resumable: false // Plus rapide pour fichiers < 5MB, utilise resumable:true pour les gros fichiers
     });
 
     blobStream.on('error', (err) => {
       console.error('Upload error:', err);
-      res.status(500).json({ error: err.message });
+      if (!res.headersSent) {
+        res.status(500).json({ error: err.message });
+      }
     });
 
     blobStream.on('finish', async () => {
-      res.json({
-        success: true,
-        message: 'Fichier uploadé avec succès',
-        path: destination
+      // Nettoyer le fichier temporaire
+      require('fs').unlink(file.tempFilePath, (err) => {
+        if (err) console.error('Error deleting temp file:', err);
       });
+
+      if (!res.headersSent) {
+        res.json({
+          success: true,
+          message: 'Fichier uploadé avec succès',
+          path: destination
+        });
+      }
     });
 
-    blobStream.end(require('fs').readFileSync(file.tempFilePath));
+    // Utiliser stream au lieu de readFileSync pour meilleures performances
+    require('fs').createReadStream(file.tempFilePath).pipe(blobStream);
   } catch (error) {
     console.error('Error uploading file:', error);
     res.status(500).json({ error: error.message });

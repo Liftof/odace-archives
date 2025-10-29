@@ -317,32 +317,43 @@ async function uploadFiles(files, isFolder = false) {
     // Calculate total size
     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
     let uploadedSize = 0;
+    let completedFiles = 0;
     const startTime = Date.now();
 
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fileStartTime = Date.now();
+    // Upload en parallèle par lots de 3 fichiers
+    const BATCH_SIZE = 3;
 
-        const displayPath = file.webkitRelativePath || file.name;
-        progressText.textContent = `Upload ${i + 1}/${files.length} · ${displayPath}`;
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+        const batch = files.slice(i, i + BATCH_SIZE);
 
-        await uploadFile(file, isFolder);
+        // Upload tous les fichiers du lot en parallèle
+        await Promise.all(batch.map(async (file) => {
+            const displayPath = file.webkitRelativePath || file.name;
 
-        uploadedSize += file.size;
-        const elapsedTime = (Date.now() - startTime) / 1000; // seconds
-        const speed = uploadedSize / elapsedTime; // bytes per second
-        const progress = Math.round((uploadedSize / totalSize) * 100);
+            try {
+                await uploadFile(file, isFolder);
 
-        progressBarFill.style.width = progress + '%';
-        progressPercent.textContent = progress + '%';
+                // Update progress
+                uploadedSize += file.size;
+                completedFiles++;
 
-        // Update progress with speed
-        const speedText = formatSpeed(speed);
-        const remainingSize = totalSize - uploadedSize;
-        const remainingTime = remainingSize / speed;
-        const etaText = formatTime(remainingTime);
+                const elapsedTime = (Date.now() - startTime) / 1000;
+                const speed = uploadedSize / elapsedTime;
+                const progress = Math.round((uploadedSize / totalSize) * 100);
 
-        progressText.textContent = `Fichier ${i + 1} sur ${files.length} • ${speedText} • Temps restant: ${etaText}\n${displayPath}`;
+                progressBarFill.style.width = progress + '%';
+                progressPercent.textContent = progress + '%';
+
+                const speedText = formatSpeed(speed);
+                const remainingSize = totalSize - uploadedSize;
+                const remainingTime = remainingSize / speed;
+                const etaText = formatTime(remainingTime);
+
+                progressText.textContent = `Fichier ${completedFiles} sur ${files.length} • ${speedText} • Temps restant: ${etaText}\nDernier: ${displayPath}`;
+            } catch (error) {
+                console.error(`Error uploading ${displayPath}:`, error);
+            }
+        }));
     }
 
     uploadProgress.style.display = 'none';
