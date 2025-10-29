@@ -323,7 +323,7 @@ async function uploadFiles(files, isFolder = false) {
         const batch = files.slice(i, i + BATCH_SIZE);
 
         // Upload tous les fichiers du lot en parallèle
-        await Promise.all(batch.map(async (file) => {
+        const results = await Promise.allSettled(batch.map(async (file) => {
             const displayPath = file.webkitRelativePath || file.name;
 
             try {
@@ -346,10 +346,19 @@ async function uploadFiles(files, isFolder = false) {
                 const etaText = formatTime(remainingTime);
 
                 progressText.textContent = `Fichier ${completedFiles} sur ${files.length} • ${speedText} • Temps restant: ${etaText}\nDernier: ${displayPath}`;
+
+                return { success: true, file: displayPath };
             } catch (error) {
-                console.error(`Error uploading ${displayPath}:`, error);
+                console.error(`❌ Échec upload ${displayPath}:`, error.message);
+                return { success: false, file: displayPath, error: error.message };
             }
         }));
+
+        // Afficher les erreurs s'il y en a
+        const failures = results.filter(r => r.value && !r.value.success);
+        if (failures.length > 0) {
+            console.warn(`⚠️ ${failures.length} fichier(s) non uploadé(s)`);
+        }
     }
 
     uploadProgress.style.display = 'none';
@@ -358,40 +367,57 @@ async function uploadFiles(files, isFolder = false) {
 }
 
 async function uploadFile(file, isFolder = false) {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    // Si c'est un upload de dossier, on utilise le chemin relatif
-    let filePath = currentPath;
-    if (isFolder && file.webkitRelativePath) {
-        filePath = currentPath + file.webkitRelativePath;
-    } else {
-        filePath = currentPath + file.name;
-    }
-
-    formData.append('filePath', filePath);
-    formData.append('prefix', currentPath);
-
     try {
-        const response = await fetch('/api/upload', {
+        // Déterminer le nom de fichier final
+        let fileName;
+        if (isFolder && file.webkitRelativePath) {
+            fileName = file.webkitRelativePath;
+        } else {
+            fileName = file.name;
+        }
+
+        // Étape 1: Obtenir l'URL signée du serveur
+        const urlResponse = await fetch('/api/get-upload-url', {
             method: 'POST',
-            body: formData
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fileName: fileName,
+                fileSize: file.size,
+                contentType: file.type || 'application/octet-stream',
+                prefix: currentPath
+            })
         });
 
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Erreur upload');
+        if (!urlResponse.ok) {
+            const error = await urlResponse.json();
+            throw new Error(error.error || 'Erreur lors de la génération de l\'URL');
         }
 
-        const result = await response.json();
+        const { uploadUrl, destination, renamed, message } = await urlResponse.json();
 
         // Afficher un message si le fichier a été renommé
-        if (result.renamed) {
-            console.log(`ℹ️ ${result.message}`);
+        if (renamed) {
+            console.log(`ℹ️ ${message}`);
         }
+
+        // Étape 2: Upload direct vers GCS avec l'URL signée
+        const uploadResponse = await fetch(uploadUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+                'Content-Type': file.type || 'application/octet-stream'
+            }
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error(`Erreur GCS: ${uploadResponse.status} ${uploadResponse.statusText}`);
+        }
+
+        console.log(`✅ Fichier uploadé: ${destination}`);
+
     } catch (error) {
         console.error('Upload error:', error);
-        alert(`Erreur lors de l'upload de ${file.name}: ${error.message}`);
+        throw error; // Re-throw pour que le gestionnaire parent puisse gérer
     }
 }
 

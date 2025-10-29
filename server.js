@@ -187,7 +187,51 @@ async function findUniqueFilename(basePath) {
   return newPath;
 }
 
-// Upload file
+// Generate signed URL for direct upload to GCS
+app.post('/api/get-upload-url', requireAuth, async (req, res) => {
+  try {
+    const { fileName, fileSize, contentType, prefix } = req.body;
+
+    if (!fileName) {
+      return res.status(400).json({ error: 'Nom de fichier manquant' });
+    }
+
+    // Construct destination path
+    const requestedDestination = (prefix || '') + fileName;
+
+    // Find unique filename to avoid overwriting
+    const destination = await findUniqueFilename(requestedDestination);
+
+    const file = bucket.file(destination);
+
+    // Generate signed URL valid for 1 hour
+    const [url] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'write',
+      expires: Date.now() + 60 * 60 * 1000, // 1 hour
+      contentType: contentType || 'application/octet-stream',
+      extensionHeaders: {
+        'x-goog-resumable': 'start'
+      }
+    });
+
+    const wasRenamed = destination !== requestedDestination;
+
+    res.json({
+      uploadUrl: url,
+      destination: destination,
+      renamed: wasRenamed,
+      message: wasRenamed
+        ? `Fichier renommé en "${destination.split('/').pop()}" (le nom existait déjà)`
+        : 'URL générée'
+    });
+  } catch (error) {
+    console.error('Error generating signed URL:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Upload file (keep for backward compatibility with small files)
 app.post('/api/upload', requireAuth, async (req, res) => {
   try {
     if (!req.files || !req.files.file) {

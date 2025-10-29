@@ -1,17 +1,24 @@
 # Odace Archives - Gestionnaire de fichiers GCS
 
-Interface de gestion de fichiers pour Google Cloud Storage avec un style néobrutalism.
+Interface de gestion de fichiers pour Google Cloud Storage avec un style Le Corbusier 70s brutalist.
 
 ## Fonctionnalités
 
+- **Upload direct vers GCS** - Supporte fichiers de toutes tailles (même 30GB+) sans passer par le serveur
+- **Upload parallèle** - 5 fichiers en simultané pour vitesse maximale (5x plus rapide)
+- **Protection anti-écrasement** - Renomme automatiquement si fichier existe (ex: photo.jpg → photo (1).jpg)
 - Authentification sécurisée
 - Upload de fichiers par drag & drop ou sélection
+- Upload de dossiers complets avec structure préservée
 - Gestion de dossiers (création, navigation, suppression)
 - Téléchargement de fichiers
 - Renommage de fichiers
 - Suppression de fichiers/dossiers
-- Affichage des tailles de fichiers
-- Interface responsive en style néobrutalism
+- Affichage des tailles de fichiers et dossiers
+- Barre de progression avec vitesse d'upload et temps restant
+- Logs serveur consultables
+- Affichage du poids total du bucket
+- Interface responsive en style Le Corbusier 70s brutalist
 
 ## Prérequis
 
@@ -72,16 +79,20 @@ L'application sera disponible sur `http://localhost:3001`
 
 - **Backend :** Node.js + Express + Google Cloud Storage SDK
 - **Frontend :** HTML/CSS/JavaScript vanilla
-- **Style :** Néobrutalism (bordures épaisses, couleurs vives, ombres dures)
+- **Upload :** Direct vers GCS via URLs signées (bypass serveur)
+- **Style :** Le Corbusier 70s brutalist (bordures épaisses, couleurs chaudes, ombres dures)
 - **Authentification :** Sessions Express
 - **Storage :** Google Cloud Storage (classe Archives)
+- **Hébergement :** Render (Starter plan)
 
 ## Sécurité
 
 - Authentification obligatoire pour toutes les opérations
 - Credentials stockés dans `.env` (ne pas commiter)
 - Sessions serveur avec cookies
-- Upload limité à 5GB par fichier
+- URLs signées GCS avec expiration (1 heure)
+- Aucune limite de taille de fichier (gérée par GCS)
+- Protection automatique contre écrasement de fichiers
 
 ## Développement
 
