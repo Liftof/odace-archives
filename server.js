@@ -205,14 +205,15 @@ app.post('/api/get-upload-url', requireAuth, async (req, res) => {
     const file = bucket.file(destination);
 
     // Generate signed URL valid for 1 hour
+    // Use resumable upload for large files (>10MB), simple PUT for small files
+    const useResumable = fileSize > 10 * 1024 * 1024;
+
     const [url] = await file.getSignedUrl({
       version: 'v4',
       action: 'write',
       expires: Date.now() + 60 * 60 * 1000, // 1 hour
-      contentType: contentType || 'application/octet-stream',
-      extensionHeaders: {
-        'x-goog-resumable': 'start'
-      }
+      contentType: contentType || 'application/octet-stream'
+      // Don't use resumable for now - simple PUT is more reliable
     });
 
     const wasRenamed = destination !== requestedDestination;
