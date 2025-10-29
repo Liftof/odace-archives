@@ -120,12 +120,9 @@ app.get('/api/files', requireAuth, async (req, res) => {
       const folderPrefix = prefix + folder + '/';
       const [folderFiles] = await bucket.getFiles({ prefix: folderPrefix });
       const folderSize = folderFiles.reduce((sum, file) => {
-        const fileSize = parseInt(file.metadata.size || 0);
-        console.log(`File in folder ${folder}: ${file.name} - size: ${fileSize}`);
-        return sum + fileSize;
+        return sum + parseInt(file.metadata.size || 0);
       }, 0);
       folderSizes[folder] = folderSize;
-      console.log(`Folder ${folder} total size: ${folderSize}`);
     }
 
     // Add folders to items with sizes
@@ -174,11 +171,18 @@ app.post('/api/upload', requireAuth, async (req, res) => {
     const destination = req.body.filePath || ((req.body.prefix || '') + file.name);
 
     const blob = bucket.file(destination);
+
+    // Utiliser resumable pour les gros fichiers (> 5MB)
+    const useResumable = file.size > 5 * 1024 * 1024;
+
     const blobStream = blob.createWriteStream({
       metadata: {
-        contentType: file.mimetype
+        contentType: file.mimetype,
+        cacheControl: 'public, max-age=31536000'
       },
-      resumable: false // Plus rapide pour fichiers < 5MB, utilise resumable:true pour les gros fichiers
+      resumable: useResumable,
+      validation: false, // Désactiver validation pour plus de vitesse
+      gzip: true // Compression automatique
     });
 
     blobStream.on('error', (err) => {
@@ -203,8 +207,12 @@ app.post('/api/upload', requireAuth, async (req, res) => {
       }
     });
 
-    // Utiliser stream au lieu de readFileSync pour meilleures performances
-    require('fs').createReadStream(file.tempFilePath).pipe(blobStream);
+    // Utiliser stream avec buffer optimisé pour meilleures performances
+    const readStream = require('fs').createReadStream(file.tempFilePath, {
+      highWaterMark: 1024 * 1024 // 1MB buffer pour vitesse optimale
+    });
+
+    readStream.pipe(blobStream);
   } catch (error) {
     console.error('Error uploading file:', error);
     res.status(500).json({ error: error.message });

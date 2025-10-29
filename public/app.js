@@ -176,10 +176,6 @@ async function loadFiles() {
         }
 
         const data = await response.json();
-        console.log('Received items:', data.items);
-        data.items.forEach(item => {
-            console.log(`Item: ${item.name}, type: ${item.type}, size: ${item.size}`);
-        });
         displayFiles(data.items);
         updatePathDisplay();
     } catch (error) {
@@ -320,8 +316,8 @@ async function uploadFiles(files, isFolder = false) {
     let completedFiles = 0;
     const startTime = Date.now();
 
-    // Upload en parallèle par lots de 3 fichiers
-    const BATCH_SIZE = 3;
+    // Upload en parallèle par lots de 5 fichiers
+    const BATCH_SIZE = 5;
 
     for (let i = 0; i < files.length; i += BATCH_SIZE) {
         const batch = files.slice(i, i + BATCH_SIZE);
