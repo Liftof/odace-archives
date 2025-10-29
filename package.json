@@ -1,0 +1,28 @@
+{
+  "name": "odace-archives",
+  "version": "1.0.0",
+  "description": "Interface de gestion de fichiers Google Cloud Storage pour Odace",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "gcs",
+    "google-cloud-storage",
+    "file-manager",
+    "odace"
+  ],
+  "author": "Odace",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/storage": "^7.7.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-fileupload": "^1.4.3",
+    "express-session": "^1.17.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

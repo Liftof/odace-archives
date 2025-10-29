@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odace Archives - Gestion de fichiers</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h1>ODACE ARCHIVES</h1>
+            <p class="subtitle">Authentification requise</p>
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="email">Identifiant</label>
+                    <input type="email" id="email" required placeholder="adresse@email.com">
+                </div>
+                <div class="input-group">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" required placeholder="••••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary">Se connecter</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" style="display: none;">
+        <header>
+            <div class="header-content">
+                <h1>ODACE ARCHIVES</h1>
+                <div class="header-actions">
+                    <span id="bucketSize" class="bucket-size">Total: --</span>
+                    <span id="statusDisplay" class="status-display">PRÊT</span>
+                    <span id="currentPath" class="path-display">/</span>
+                    <button id="logoutBtn" class="btn btn-secondary">Déconnexion</button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="toolbar">
+                <button id="newFolderBtn" class="btn btn-primary">
+                    <span class="icon">+</span> Nouveau dossier
+                </button>
+                <button id="uploadBtn" class="btn btn-primary">
+                    <span class="icon">↑</span> Uploader un fichier
+                </button>
+                <button id="uploadFolderBtn" class="btn btn-primary">
+                    <span class="icon">↑↑</span> Uploader un dossier
+                </button>
+                <input type="file" id="fileInput" multiple style="display: none;">
+                <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
+                <button id="refreshBtn" class="btn btn-secondary">
+                    <span class="icon">⟳</span> Actualiser
+                </button>
+                <button id="logsBtn" class="btn btn-secondary">
+                    <span class="icon">📋</span> Logs
+                </button>
+            </div>
+
+            <div id="dropZone" class="drop-zone">
+                <p class="drop-message">Glissez-déposez vos fichiers ici</p>
+                <div id="fileList" class="file-list"></div>
+            </div>
+
+            <div id="uploadProgress" class="upload-progress" style="display: none;">
+                <div class="progress-header">
+                    <span class="progress-title">Upload en cours</span>
+                    <span id="progressPercent" class="progress-percent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="progressBarFill" class="progress-fill"></div>
+                </div>
+                <div class="progress-stats">
+                    <p id="progressText">Préparation...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Logs Modal -->
+    <div id="logsModal" class="modal" style="display: none;">
+        <div class="modal-content logs-modal">
+            <div class="logs-header">
+                <h2>LOGS SERVEUR</h2>
+                <button id="closeLogsBtn" class="btn btn-small btn-danger">✕</button>
+            </div>
+            <div class="logs-controls">
+                <button id="refreshLogsBtn" class="btn btn-small btn-secondary">⟳ Actualiser</button>
+                <button id="clearLogsBtn" class="btn btn-small btn-secondary">Effacer l'affichage</button>
+            </div>
+            <div id="logsList" class="logs-list"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
