@@ -159,6 +159,34 @@ app.get('/api/files', requireAuth, async (req, res) => {
   }
 });
 
+// Helper function to find unique filename
+async function findUniqueFilename(basePath) {
+  const [exists] = await bucket.file(basePath).exists();
+  if (!exists) return basePath;
+
+  // Parse path to get directory, name, and extension
+  const lastSlash = basePath.lastIndexOf('/');
+  const dir = lastSlash >= 0 ? basePath.substring(0, lastSlash + 1) : '';
+  const filename = lastSlash >= 0 ? basePath.substring(lastSlash + 1) : basePath;
+
+  const lastDot = filename.lastIndexOf('.');
+  const name = lastDot >= 0 ? filename.substring(0, lastDot) : filename;
+  const ext = lastDot >= 0 ? filename.substring(lastDot) : '';
+
+  // Try names with (1), (2), etc.
+  let counter = 1;
+  let newPath;
+  while (true) {
+    newPath = `${dir}${name} (${counter})${ext}`;
+    const [exists] = await bucket.file(newPath).exists();
+    if (!exists) return newPath;
+    counter++;
+    if (counter > 100) break; // Safety limit
+  }
+
+  return newPath;
+}
+
 // Upload file
 app.post('/api/upload', requireAuth, async (req, res) => {
   try {
@@ -168,7 +196,10 @@ app.post('/api/upload', requireAuth, async (req, res) => {
 
     const file = req.files.file;
     // Use filePath if provided (for folder uploads with structure), otherwise use prefix + filename
-    const destination = req.body.filePath || ((req.body.prefix || '') + file.name);
+    const requestedDestination = req.body.filePath || ((req.body.prefix || '') + file.name);
+
+    // Find unique filename to avoid overwriting
+    const destination = await findUniqueFilename(requestedDestination);
 
     const blob = bucket.file(destination);
 
@@ -199,10 +230,14 @@ app.post('/api/upload', requireAuth, async (req, res) => {
       });
 
       if (!res.headersSent) {
+        const wasRenamed = destination !== requestedDestination;
         res.json({
           success: true,
-          message: 'Fichier uploadé avec succès',
-          path: destination
+          message: wasRenamed
+            ? `Fichier renommé en "${destination.split('/').pop()}" (le nom existait déjà)`
+            : 'Fichier uploadé avec succès',
+          path: destination,
+          renamed: wasRenamed
         });
       }
     });

@@ -382,6 +382,13 @@ async function uploadFile(file, isFolder = false) {
             const data = await response.json();
             throw new Error(data.error || 'Erreur upload');
         }
+
+        const result = await response.json();
+
+        // Afficher un message si le fichier a été renommé
+        if (result.renamed) {
+            console.log(`ℹ️ ${result.message}`);
+        }
     } catch (error) {
         console.error('Upload error:', error);
         alert(`Erreur lors de l'upload de ${file.name}: ${error.message}`);
