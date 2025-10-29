@@ -373,6 +373,12 @@ console.error = function(...args) {
 
 addLog('info', 'Serveur Odace initialisé', { bucket: process.env.BUCKET_NAME });
 
-app.listen(PORT, () => {
-  addLog('info', `Serveur Odace démarré sur http://localhost:${PORT}`);
-});
+// Pour développement local uniquement
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    addLog('info', `Serveur Odace démarré sur http://localhost:${PORT}`);
+  });
+}
+
+// Export pour Vercel
+module.exports = app;
