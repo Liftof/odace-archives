@@ -373,8 +373,8 @@ console.error = function(...args) {
 
 addLog('info', 'Serveur Odace initialisé', { bucket: process.env.BUCKET_NAME });
 
-// Pour développement local uniquement
-if (process.env.NODE_ENV !== 'production') {
+// Démarre le serveur seulement si exécuté directement (pas via require)
+if (require.main === module) {
   app.listen(PORT, () => {
     addLog('info', `Serveur Odace démarré sur http://localhost:${PORT}`);
   });
